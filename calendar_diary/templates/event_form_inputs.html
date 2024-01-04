@@ -1,0 +1,28 @@
+{{ form.event_id }}
+{{ form.event_type }}
+<p>
+    <label for="id_event_name">{{ form.event_name.label }}</label>
+    {{ form.event_name }}
+</p>
+<div class="date_inputs">
+    <div class="with_time">
+        <p class="with-checkbox">
+            {{ form.is_allday }}
+            <label for="id_is_allday">{{ form.is_allday.label }}</label>
+        </p>
+        <div class="if_not_allday">
+            <div class="time_date_input">
+                <label for="id_start_date">{{ form.start_date.label }}</label>
+                {{ form.start_date }}
+            </div>
+            <div class="time_date_input">
+                <label for="id_end_date">{{ form.end_date.label }}</label>
+                {{ form.end_date }}
+            </div>
+        </div>
+    </div>
+</div>
+<p>
+    <label for="id_descriptuon">{{ form.description.label }}</label>
+    {{ form.description }}
+</p>
