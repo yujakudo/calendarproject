@@ -1,5 +1,10 @@
 @charset "UTF-8";
 
+:root {
+    --event-item-color: rgba(128,128,255, 0.8);
+    --diary-item-color: rgba(255,128,128, 0.8);
+}
+
 /* 画面を隠す黒幕 */
 .back-screen {
     position: fixed;

@@ -1,14 +1,14 @@
 import json
-from django.http import Http404
 import time
+from django.http import Http404
 from django.template import loader
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
-from django.http import JsonResponse
 from django.shortcuts import render
+from django.forms.models import model_to_dict
 
 from .models import Event
-from .forms import CalendarForm, EventForm, NewEventFormValidator
+from .forms import CalendarForm, EventForm
 
 # Create your views here.
 
@@ -115,66 +115,114 @@ def get_events(request):
 
     return JsonResponse(list, safe=False)
 
-# 既存のイベントのためのフォーム
-def form_exist_event(request, event_id):
-    context = {
-        'message':  "",
-        'show_form': True,
-    }
-    event = None
-    init_data =None
-    # IDが指定されていたら、イベントを取得
-    try:
-        event = Event.objects.get(pk=event_id)
-        init_data = {
-            'event_id': event.pk,
-            'event_type': event.event_type,
-            'event_name': event.event_name,
-            'is_allday': event.is_allday,
-            'start_date': event.start_date,
-            'end_date': event.end_date,
-        }
-        context.event_type = event.event_type
-    except Event.model.DoesNotExist:
-        context.message = "データが見つかりません。"
-        context.show_form = False
+# # 既存のイベントのためのフォーム
+# def form_exist_event(request, event_id):
+#     context = {
+#         'message':  "",
+#         'show_form': True,
+#     }
+#     event = None
+#     init_data =None
+#     # IDが指定されていたら、イベントを取得
+#     try:
+#         event = Event.objects.get(pk=event_id)
+#         init_data = {
+#             'event_id': event.pk,
+#             'event_type': event.event_type,
+#             'event_name': event.event_name,
+#             'is_allday': event.is_allday,
+#             'start_date': event.start_date,
+#             'end_date': event.end_date,
+#         }
+#         context.event_type = event.event_type
+#     except Event.model.DoesNotExist:
+#         context.message = "データが見つかりません。"
+#         context.show_form = False
     
-    context.form = EventForm(event)
-    return render(request, 'event_form.html', context)
+#     context.form = EventForm(event)
+#     return render(request, 'event_form.html', context)
 
 
-# 既存のイベントのためのフォーム
-def event_form(request):
-    data = {
-        'event_type': 'event',
-    }
-    # データの取得
-    if request.method == "POST":
-        # POSTメソッドのときはJSONデータなのでデコード
-        data = json.loads(request.body)
-    elif request.method == "GET":
-        # GETメソッドのときはそのまま（デバッグ用）
-        data = request.GET
-    else:
-        return HttpResponse("リクエストが不正です。", status=400)
+# # 既存のイベントのためのフォーム
+# def event_form(request):
+#     data = {
+#         'event_type': 'event',
+#     }
+#     # データの取得
+#     if request.method == "POST":
+#         # POSTメソッドのときはJSONデータなのでデコード
+#         data = json.loads(request.body)
+#     elif request.method == "GET":
+#         # GETメソッドのときはそのまま（デバッグ用）
+#         data = request.GET
+#     else:
+#         return HttpResponse("リクエストが不正です。", status=400)
 
-    if data != None and ('id' in data.keys()) and data['id'] > 0:
-        # IDが指定されていたら、DBよりイベントを取得
-        try:
-            data = Event.objects.get(pk=data['id'])
-        except Event.model.DoesNotExist:
-            return HttpResponse("指定されたデータが見つかりません。", status=400)
-        # DBより取得したデータは検証不要
+#     if data != None and ('id' in data.keys()) and data['id'] > 0:
+#         # IDが指定されていたら、DBよりイベントを取得
+#         try:
+#             data = Event.objects.get(pk=data['id'])
+#         except Event.model.DoesNotExist:
+#             return HttpResponse("指定されたデータが見つかりません。", status=400)
+#         # DBより取得したデータは検証不要
 
-    elif data != None:
-        # データがあれば検証する
-        validator = NewEventFormValidator(data)
-        if not validator.is_valid():
-            return HttpResponse("渡されたデータが不正です。", status=400)
+#     elif data != None:
+#         # データがあれば検証する
+#         validator = NewEventFormValidator(data)
+#         if not validator.is_valid():
+#             return HttpResponse("渡されたデータが不正です。", status=400)
         
-    # データを初期値としてフォームをレンダリング
-    context = {
-        'form': EventForm(initial=data)
-    }
-    return render(request, 'event_form.html', context)
+#     # データを初期値としてフォームをレンダリング
+#     context = {
+#         'form': EventForm(initial=data)
+#     }
+#     return render(request, 'event_form.html', context)
 
+def save_event(request):
+    """
+    イベント登録
+    """
+
+    if not request.method == "POST":
+        # POSTメソッド以外はエラー
+        return HttpResponse("リクエストが不正です。",
+                            status=404)
+
+    # JSONの解析
+    data = json.loads(request.body)
+
+    # バリデーション
+    eventForm = EventForm(data)
+    if not eventForm.is_valid():
+        print(eventForm.errors)
+        return HttpResponse("渡されたデータが不正です。",
+                            status=400)
+    
+    data['event_id'] = int(data['event_id']);
+    if data['event_id']==0:
+        # IDが０なら新規登録
+        event = Event(
+            event_type=data['event_type'],
+            event_name=data['event_name'],
+            start_date=data['start_date'],
+            end_date=data['end_date'],
+            is_allday = data['is_allday'],
+            description = data['description'],
+        )
+    else:
+        # IDが０でなければ、データ更新
+        pass
+
+    event.save()
+    obj = {
+        'event_id': event.pk ,
+        'event_type': event.event_type,
+        'event_name': event.event_name,
+        'start_date': event.start_date,
+        'end_date': event.end_date,
+        'is_allday': event.is_allday,
+
+    }
+    to_json = model_to_dict(event)
+    # 空を返却
+    return JsonResponse(to_json, safe=False)
