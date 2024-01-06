@@ -46,3 +46,7 @@ class EventForm(forms.Form):
 class CalendarForm(forms.Form):
     start_date = forms.DateTimeField(required=True)
     end_date = forms.DateTimeField(required=True)
+
+# 削除のリクエストのときのバリデーション用
+class DeleteForm(forms.Form):
+    event_id = forms.IntegerField(required=True)

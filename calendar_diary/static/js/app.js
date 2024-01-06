@@ -367,6 +367,29 @@ function onEventClick(info) {
 }
 
 /**
+ * 削除ボタンが押されたときの処理
+ */
+function onClickDelete() {
+    // 隠しフィールドのIDを取得
+    var id = parseInt($("#id_event_id").val())
+    // IDが0なら終了
+    if(id==0)  return;
+    // 送信
+    axios.post("/sc/delete/", {event_id: id})
+    .then(() => {
+        // 成功したらイベントを削除
+        let event = calendar.getEventById( id );
+        event.remove();
+        //  ポップアップを閉じる
+        closePopup();
+    })
+    .catch((error) => {
+        // 登録が失敗したら、メッセージを生成し表示
+        showError(error);
+    });
+}
+
+/**
  * 初期化
  */
 function init() {
@@ -376,6 +399,8 @@ function init() {
     $("#event-submit").click(submitEvent);
     //  編集チェックボックスの処理を登録
     $("#id-check-to-edit").click(changeEditable);
+    //  削除ボタンの処理を登録
+    $("#button-delete").click(onClickDelete);
     //  ID="calendar"のタグに要素取得
     var calendarEl = document.getElementById('calendar');
     //  FullCalendarのインスタンスを作成

@@ -8,7 +8,7 @@ from django.shortcuts import render
 from django.forms.models import model_to_dict
 
 from .models import Event
-from .forms import CalendarForm, EventForm
+from .forms import CalendarForm, EventForm, DeleteForm
 
 # Create your views here.
 
@@ -133,3 +133,31 @@ def get_event(request, id):
     # JSONのイベントデータを返す
     dct_event = event_to_dict(event)
     return JsonResponse(dct_event, safe=False)
+
+
+def delete_event(request):
+    """
+    イベントの削除
+    """
+    if request.method != "POST":
+        # POSTメソッド以外はエラー
+        return HttpResponse("リクエストが不正です。",
+                            status=404)
+
+    # JSONの解析
+    data = json.loads(request.body)
+    # バリデーション
+    calendarForm = DeleteForm(data)
+    if calendarForm.is_valid() == False:
+        return HttpResponse("渡されたデータが不正です。",
+                            status=400)
+
+    # イベントデータを取得
+    try:
+        event = Event.objects.get(pk=data['event_id'])
+    except event.DoesNotExist:
+        raise Http404("イベントがありません。")
+
+    # イベントを削除
+    event.delete()
+    return HttpResponse()
