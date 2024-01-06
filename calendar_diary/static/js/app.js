@@ -21,51 +21,39 @@ var list_event_types = [
 axios.defaults.xsrfHeaderName = "X-CSRFTOKEN"
 axios.defaults.xsrfCookieName = "csrftoken"
 
-//  イベントの入力
-function inputEvent(info) {
-    // 入力ダイアログ
-    const eventName = prompt("イベントを入力してください");
-    if (eventName) {
-        // サーバにイベント登録のリクエスト
-        axios.post("/sc/add/", {
-            start_date: info.start.valueOf(),
-            end_date: info.end.valueOf(),
-            event_name: eventName,
-            is_allday: info.allDay,
-        })
-        .then(() => {
-            // カレンダーにイベントの追加
-            calendar.addEvent({
-                title: eventName,
-                start: info.start,
-                end: info.end,
-                allDay: info.allDay,
-            });
-
-        })
-        .catch(() => {
-            // バリデーションエラーなど
-            alert("登録に失敗しました");
-        });
-    }
-}
-
 // イベントリストの取得
 function getEventList(info, successCallback, failureCallback) {
+    // 開始／終了日時は、日時の部分と時差の部分を分ける
+    var ldt_start = splitDateTime(info.startStr);
+    var ldt_end = splitDateTime(info.endStr);
+    // 送信
     axios.post("/sc/list/", {
         // イベントリストの取得
-        start_date: info.start.valueOf(),
-        end_date: info.end.valueOf(),
+        start_date: ldt_start[0],
+        end_date: ldt_end[0],
     })
     .then((response) => {
         // カレンダーをクリアして、取得したデータをセット
+        var data  = convertListForCalendar(response.data);
         calendar.removeAllEvents();
-        successCallback(response.data);
+        successCallback(data);
     })
-    .catch(() => {
-        // バリデーションエラーなど
-        alert("イベントの取得に失敗しました");
+    .catch((error) => {
+        // 登録が失敗したら、メッセージを生成し表示
+        showError(error);
     });
+}
+
+/**
+ * イベントデータの配列をカレンダーのデータに変換
+ * @param {object[]} l_data サーバが渡すイベントデータの配列 
+ */
+function convertListForCalendar(l_data) {
+    var cal_data = [];
+    for(var a_event of l_data) {
+        cal_data.push( convertEventForCalendar(a_event) );
+    }
+    return cal_data;
 }
 
 /**
@@ -259,15 +247,23 @@ function submitEvent(e) {
         })
         .catch((error) => {
             // 登録が失敗したら、メッセージを生成し表示
-            // todo：alertよりHTMLに表示のほうがよいか
-            let msg = "";
-            if(error.response) {
-                msg += error.response.status + ": ";
-            }
-            msg += error.message;
-            alert(msg);
+            showError(error);
         });
     }
+}
+
+/**
+ * エラーメッセージを生成し表示
+ * @param {object} error axiosが渡すエラーオブジェクト 
+ */
+function showError(error) {
+    // todo：alertよりHTMLに表示のほうがよいか
+    let msg = "";
+    if(error.response) {
+        msg += error.response.status + ": ";
+    }
+    msg += error.message;
+    alert(msg);
 }
 
 /**
