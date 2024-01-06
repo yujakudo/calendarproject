@@ -6,4 +6,5 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("sc/list/", views.get_event_list, name="get_event_list"),
     path("sc/save/", views.save_event, name="save_event"),
+    path("sc/get/<int:id>/", views.get_event, name="get_event"),
 ]

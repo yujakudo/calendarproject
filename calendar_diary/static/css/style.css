@@ -1,8 +1,57 @@
 @charset "UTF-8";
 
+/* 変数の定義 */
 :root {
     --event-item-color: rgba(128,128,255, 0.8);
     --diary-item-color: rgba(255,128,128, 0.8);
+    --popup-base-color: rgba(239, 247, 255, 0.95);
+    --popup-header-color: rgba(123, 216, 230, 0.3);
+    --transparent: rgba(255,255,255,0);
+    --semi-transparent: rgba(255,255,255,0.5);
+    font-family: "Helvetica Neue", Arial,
+                "Hiragino Kaku Gothic ProN",
+                "Hiragino Sans", Meiryo, sans-serif;
+}
+
+/* カレンダーのイベント上のカーソルは変える */
+.fc-event:hover,
+.fc-event-title-container:hover {
+    cursor: pointer;
+}
+
+/* input等 */
+input, textarea {
+    font-family: inherit;
+}
+
+textarea {
+    padding: 0.4em;
+}
+
+/* input[type="radio"][readonly] {
+    display: none;
+} */
+input[type="text"]:read-only, 
+input[type="datetime-local"]:read-only, 
+input[type="checkbox"]:read-only {
+    background-color: var(--transparent);
+    border-color: var(--transparent);
+}
+textarea:read-only {
+    background-color: var(--semi-transparent);
+    border-color: var(--transparent);
+   
+}
+
+#id-check-to-delete:checked+label {
+    display: none;  
+}
+#id-check-to-delete~button {
+    display: none;
+    height: 1.7em;
+}
+#id-check-to-delete:checked~button {
+    display: inline;  
 }
 
 /* 画面を隠す黒幕 */
@@ -30,17 +79,29 @@
     max-height: 100%;
     height: 440px;
     margin: auto;
-    background-color: aliceblue;
+    background-color: var(--popup-base-color);
     box-shadow: 2px 2px 8px rgba(0,0,0,0.5)
 }
 
 /* ポップアップのヘッダ部 */
 .popup-header {
-    background-color: lightblue;
-    text-align: right;
-    vertical-align: middle;
-    height: 2.1em;
+    display: flex;
+    background-color: var(--popup-header-color);
+    padding: 2px;
 }
+.popup-header>div:first-child {
+    height: 1.8em;
+    flex-grow:2;
+    vertical-align: middle;
+}
+.popup-header>div:last-child {
+    flex-grow:1;
+    text-align: right;
+}
+.to-delete {
+    margin-left: 1em;
+}
+
 /* ポップアップ本体 */
 .popup-body {
     overflow: auto;
@@ -96,7 +157,7 @@
 /* テキストエリア */
 .post_event_form textarea {
     display: block;
-    width: 100%;
+    width: 100%-0.4em;
 }
 
 /* 送信ボタンの段落 */

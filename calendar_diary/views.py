@@ -58,12 +58,35 @@ def save_event(request):
         )
     else:
         # IDが０でなければ、データ更新
-        pass
+        # イベントデータを取得
+        try:
+            event = Event.objects.get(pk=data['event_id'])
+        except event.DoesNotExist:
+            return HttpResponse("渡されたデータが不正です。",
+                                status=400)
+        
+        # データを更新
+        event.event_type=data['event_type']
+        event.event_name=data['event_name']
+        event.start_date=data['start_date']
+        event.end_date=data['end_date']
+        event.is_allday = data['is_allday']
+        event.description = data['description']
 
     event.save()
-    to_json = model_to_dict(event)
-    # 空を返却
+    to_json = event_to_dict(event)
+    # イベントデータを返す
     return JsonResponse(to_json, safe=False)
+
+def event_to_dict(event):
+    """イベントを辞書に変換する。
+    """
+    # 辞書に変換
+    dct_event = model_to_dict(event)
+    # キーidを、event_idに置き換える
+    dct_event['event_id'] = dct_event['id']
+    del dct_event['id']
+    return dct_event
 
 
 def get_event_list(request):
@@ -90,8 +113,23 @@ def get_event_list(request):
     # 配列を作成
     list = []
     for event in events:
-        dct_event = model_to_dict(event)
+        dct_event = event_to_dict(event)
         list.append(dct_event)
 
     # 作成した配列をJSONで返す
     return JsonResponse(list, safe=False)
+
+
+def get_event(request, id):
+    """
+    イベントの取得
+    """
+    # URLのIDにてイベントデータを取得
+    try:
+        event = Event.objects.get(pk=id)
+    except event.DoesNotExist:
+        raise Http404("イベントがありません。")
+    
+    # JSONのイベントデータを返す
+    dct_event = event_to_dict(event)
+    return JsonResponse(dct_event, safe=False)

@@ -17,7 +17,18 @@
     <div id="popup-screen" class="back-screen">
         <div class="popup">
             <div class="popup-header">
-                <button id="close-popup">×</button>
+                <div class="to-edit">
+                    <input id="id-check-to-edit" name="check-to-edit" type="checkbox" />
+                    <label for="id-check-to-edit">編集</label>
+                    <span class="to-delete">
+                        <input id="id-check-to-delete" name="check-to-delete" type="checkbox" />
+                        <label for="id-check-to-delete">削除</label>
+                        <button id="button-delete">削除</button>
+                    </span>
+                </div>
+                <div>
+                    <button id="close-popup">×</button>
+                </div>
             </div>
             <div class="popup-body">
                 <form action="POST" class="post_event_form" action="">

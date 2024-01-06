@@ -97,6 +97,10 @@ function openPopup(data, options) {
     showTypeOptions(opts);
 
     //  オプション
+    //  ヘッダの編集の表示
+    if('editable' in options && options.editable) {
+        showHeaderChecks(true);
+    }
     //  送信ボタンの表示／非表示
     if('submitButton' in options) {
         showSubmitButton(options.submitButton);
@@ -113,6 +117,48 @@ function clearPopup() {
     showSubmitButton('');
     //  フォームに初期データを設定
     setEventToForm(initial_event_data);
+    //  ヘッダーの編集等は非表示
+    showHeaderChecks(false);
+}
+
+/**
+ * ヘッダーの編集等のチェックボックスの表示／非表示
+ * @param {boolean} to_show trueのとき表示 
+ */
+function showHeaderChecks(to_show) {
+    // 削除のチェックは外す
+    $("#id-check-to-delete").prop("checked", false);
+    if(to_show) {
+        // 編集のチェックは外す
+        $("#id-check-to-edit").prop("checked", false);
+        //  ヘッダの編集・削除を表示
+        $(".to-edit").show();
+    } else {
+        // 編集のチェックを付ける
+        $("#id-check-to-edit").prop("checked", true);
+        //  ヘッダの編集・削除を隠す
+        $(".to-edit").hide();
+    }
+    changeEditable();
+}
+
+/**
+ * 編集にチェックがあるかによって、読み取り専用かどうかを変える。
+ */
+function changeEditable() {
+    if($("#id-check-to-edit").prop("checked")) {
+        // 編集にチェックがあればreadonlyをとる
+        $('.post_event_form input').removeAttr('readonly');
+        $('.post_event_form textarea').removeAttr('readonly');
+        // 送信ボタンを「更新」として表示する
+        showSubmitButton('更新');
+    } else {
+        // 編集にチェックがなければreadonlyを付ける
+        $('.post_event_form input').attr('readonly', true);
+        $('.post_event_form textarea').attr('readonly', true);
+        // 送信ボタンは表示しない
+        showSubmitButton('');
+    }
 }
 
 /**
@@ -154,10 +200,7 @@ function showSubmitButton(caption) {
  */
 function setEventToForm(data) {
     if("event_type" in data) {
-        // イベントタイプがあれば、その値からインデックス（0,1,）を得て、
-        // それに当たる要素にチェックをする。
-        // let idx = ['event', 'diary'].indexOf(data.event_type);
-        // $("#id_event_type_" + String(idx)).attr("checked", true);
+        // ラジオボタンに値を反映
         $('input[name="event_type"]').val([data.event_type]);
     }
     if("is_allday" in data) {
@@ -238,8 +281,13 @@ function submitEvent(e) {
         // todo: 送信先がハードコーディング
         axios.post("/sc/save/", data)
         .then((response) => {
-            // 登録が成功したら、レスポンスの本文を
-            // カレンダーのデータに変換
+            // 登録成功
+            if(data.event_id>0) {
+                // イベントIDがあったら、更新なので、カレンダーのイベントを削除
+                let event = calendar.getEventById( data.event_id );
+                event.remove();
+            }
+            // レスポンスのデータをカレンダーのデータに変換
             let cal_data = convertEventForCalendar(response.data);
             // カレンダーにイベントの追加
             calendar.addEvent(cal_data);
@@ -279,7 +327,7 @@ function convertEventForCalendar(data) {
     }
     // カレンダー用のデータを返す
     return {
-        id: data.id,
+        id: data.event_id,
         title: data.event_name,
         start: data.start_date,
         end: data.end_date,
@@ -296,6 +344,28 @@ function closePopup() {
     $("#popup-screen").hide();
 }
 
+
+/**
+ * イベントがクリックされたときの処理
+ * @param {object} info クリック時の情報
+ * @ref https://fullcalendar.io/docs/eventClick
+ */
+function onEventClick(info) {
+    axios.get("/sc/get/"+info.event.id+"/")
+    .then((response) => {
+        // 時刻はISO形式で送られてくるが、ローカルタイムに変換せずに
+        // 手っ取り早くカレンダーの日時を取得する
+        response.data.start_date = splitDateTime(info.event.startStr)[0];
+        response.data.end_date = splitDateTime(info.event.endStr)[0];
+        //  ポップアップを開く
+        openPopup(response.data, {editable: true});
+    })
+    .catch((error) => {
+        // 登録が失敗したら、メッセージを生成し表示
+        showError(error);
+    });
+}
+
 /**
  * 初期化
  */
@@ -304,6 +374,8 @@ function init() {
     $("#close-popup").click(closePopup);
     //  送信ボタンの処理を登録
     $("#event-submit").click(submitEvent);
+    //  編集チェックボックスの処理を登録
+    $("#id-check-to-edit").click(changeEditable);
     //  ID="calendar"のタグに要素取得
     var calendarEl = document.getElementById('calendar');
     //  FullCalendarのインスタンスを作成
@@ -315,6 +387,8 @@ function init() {
         select: newEvent,
         //  イベントが必要なときに呼ばれるコールバック
         events: getEventList,
+        //  イベントがクリックされたときに呼ばれるコールバック
+        eventClick: onEventClick,
         // ツールバーのデザイン
         headerToolbar: {
             left: 'dayGridMonth,timeGridWeek,timeGridDay', 
