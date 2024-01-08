@@ -7,7 +7,8 @@ from django.middleware.csrf import get_token
 from django.shortcuts import render
 from django.forms.models import model_to_dict
 
-from .models import Event
+from .base64decode import decode_base64_file, is_image
+from .models import Event, Image
 from .forms import CalendarForm, EventForm, DeleteForm
 
 # Create your views here.
@@ -38,7 +39,6 @@ def save_event(request):
 
     # JSONの解析
     data = json.loads(request.body)
-
     # バリデーション
     eventForm = EventForm(data)
     if not eventForm.is_valid():
@@ -48,35 +48,79 @@ def save_event(request):
     data['event_id'] = int(data['event_id'])
     if data['event_id']==0:
         # IDが０なら新規登録
-        event = Event(
-            event_type=data['event_type'],
-            event_name=data['event_name'],
-            start_date=data['start_date'],
-            end_date=data['end_date'],
-            is_allday = data['is_allday'],
-            description = data['description'],
-        )
+        event, image = createEvent(data)
+
     else:
         # IDが０でなければ、データ更新
-        # イベントデータを取得
         try:
-            event = Event.objects.get(pk=data['event_id'])
+            event, image = updateEvent(data)
         except event.DoesNotExist:
             return HttpResponse("渡されたデータが不正です。",
                                 status=400)
-        
-        # データを更新
-        event.event_type=data['event_type']
-        event.event_name=data['event_name']
-        event.start_date=data['start_date']
-        event.end_date=data['end_date']
-        event.is_allday = data['is_allday']
-        event.description = data['description']
+        # imageが作られていれば、イベントの子のimageを削除
+        # 一対一にする。
+        if image is not None:
+            for image in event.image_set.all():
+                image.image.delete()
+                image.delete()
 
     event.save()
+    if image is not None:
+        image.event = event
+        image.save()
+
     to_json = event_to_dict(event)
     # イベントデータを返す
     return JsonResponse(to_json, safe=False)
+
+
+def createEvent(data):
+    """
+    イベントオブジェクトの生成
+    """
+    event = Event(
+        event_type=data['event_type'],
+        event_name=data['event_name'],
+        start_date=data['start_date'],
+        end_date=data['end_date'],
+        is_allday = data['is_allday'],
+        description = data['description'],
+    )
+    # Imageも作成して返す
+    return event, createImage(data)
+
+
+def updateEvent(data):
+    # イベントデータを取得
+    event = Event.objects.get(pk=data['event_id'])
+    # データを更新
+    event.event_type=data['event_type']
+    event.event_name=data['event_name']
+    event.start_date=data['start_date']
+    event.end_date=data['end_date']
+    event.is_allday = data['is_allday']
+    event.description = data['description']
+    
+    return event, createImage(data)
+
+
+def createImage(data):
+    """
+    画像オブジェクトの生成
+    """
+    if not 'image' in data.keys() or data['image']=='':
+        return None
+    
+    image_data = decode_base64_file(data['image'])
+    # バリデーション
+    if not is_image(image_data):
+        raise HttpResponse("渡されたデータが不正です。",
+                            status=400)
+    # imageの生成
+    image = Image( image = image_data)
+
+    return image
+
 
 def event_to_dict(event):
     """イベントを辞書に変換する。
@@ -86,6 +130,11 @@ def event_to_dict(event):
     # キーidを、event_idに置き換える
     dct_event['event_id'] = dct_event['id']
     del dct_event['id']
+    images = event.image_set.all()
+    if len(images)>0:
+        dct_event['image_url'] = images[0].image.url
+        dct_event['thumbnail_url'] = images[0].thumbnail.url
+
     return dct_event
 
 
@@ -147,8 +196,8 @@ def delete_event(request):
     # JSONの解析
     data = json.loads(request.body)
     # バリデーション
-    calendarForm = DeleteForm(data)
-    if calendarForm.is_valid() == False:
+    deleteForm = DeleteForm(data)
+    if deleteForm.is_valid() == False:
         return HttpResponse("渡されたデータが不正です。",
                             status=400)
 

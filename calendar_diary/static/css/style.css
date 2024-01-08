@@ -133,7 +133,10 @@ textarea:read-only {
 }
 
 /* テキストと日時のinputの前のラベル */
-.post_event_form label:has(+input[type="text"], +input[type="datetime-local"], +textarea) {
+.post_event_form label:has(
+    +input[type="text"], +input[type="datetime-local"],
+    +textarea, +input[type="file"]
+) {
     display: block;
     width: 4.5em;
 }
@@ -146,12 +149,6 @@ textarea:read-only {
 /* テキスト */
 .post_event_form input[type="text"] {
     width: 18em;
-}
-
-/* テキストエリアのラベル */
-.post_event_form label:has(+textarea) {
-    display: block;
-    width: 2em;
 }
 
 /* テキストエリア */
@@ -170,4 +167,21 @@ textarea:read-only {
 #event-submit {
     width: 8em;
     margin: auto;
+}
+
+/* 画像の領域 */
+#id_image_area {
+    width: 100%;
+    height: 12em;
+    border: 1px solid lightblue;
+}
+
+#image_preview {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.fc-bg-event {
+    background-size: cover !important;
 }

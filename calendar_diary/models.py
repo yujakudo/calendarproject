@@ -1,6 +1,6 @@
 from django.db import models
-
-# Create your models here.
+from imagekit.models import ImageSpecField, ProcessedImageField
+from imagekit.processors import ResizeToFill
 
 
 class Event(models.Model):
@@ -13,3 +13,15 @@ class Event(models.Model):
 
     def __str__(self):
         return self.event_name
+
+class Image(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='images',blank=True, null=True)
+    thumbnail = ImageSpecField(source='image',
+                            processors=[ResizeToFill(250,250)],
+                            format="JPEG",
+                            options={'quality': 60}
+                            )
+
+    def __str__(self):
+        return self.event.event_name

@@ -5,7 +5,7 @@ from .models import Event
 event_type_choices = (
     ('event', 'イベント'),
     ('diary', '日記'),
-    # ('image', '画像'),
+    ('image', '画像'),
 )
 
 # イベントのフォーム
@@ -40,6 +40,7 @@ class EventForm(forms.Form):
     )
     description = forms.CharField(
         required=False, widget=forms.Textarea(), label='記事')
+    image = forms.ImageField(required=False, label='画像')
 
 
 # イベントリストのリクエストのときのバリデーション用

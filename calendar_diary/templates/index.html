@@ -31,7 +31,7 @@
                 </div>
             </div>
             <div class="popup-body">
-                <form action="POST" class="post_event_form" action="">
+                <form id="id_post_event_form" action="POST" class="post_event_form" action="">
                     {% csrf_token %}
                     {% include 'event_form_inputs.html' %}
                     <p>

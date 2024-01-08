@@ -14,7 +14,7 @@ var initial_event_data = {
 
 // イベントタイプのリスト
 var list_event_types = [
-    "event", "diary"
+    "event", "diary", "image"
 ];
 
 // CSRF対策
@@ -105,6 +105,8 @@ function openPopup(data, options) {
     if('submitButton' in options) {
         showSubmitButton(options.submitButton);
     }
+    //  イベントタイプにより、表示を変える
+    displayAsEventType();
 }
 
 /**
@@ -119,6 +121,8 @@ function clearPopup() {
     setEventToForm(initial_event_data);
     //  ヘッダーの編集等は非表示
     showHeaderChecks(false);
+    $('#image_preview').removeAttr('src');
+    $('input[type="file"]').val(null);
 }
 
 /**
@@ -150,12 +154,22 @@ function changeEditable() {
         // 編集にチェックがあればreadonlyをとる
         $('.post_event_form input').removeAttr('readonly');
         $('.post_event_form textarea').removeAttr('readonly');
+        let type = getEventType();
+        // 日記と画像は終日は編集できない。
+        if(type=="diary" || type=="image") {
+            $('#id_is_allday').attr("checked", true);
+            $('#id_is_allday').attr('disabled', true)
+                              .attr('readonly', true);
+        } else {
+            $('#id_is_allday').removeAttr('disabled');
+        }
         // 送信ボタンを「更新」として表示する
         showSubmitButton('更新');
     } else {
         // 編集にチェックがなければreadonlyを付ける
         $('.post_event_form input').attr('readonly', true);
         $('.post_event_form textarea').attr('readonly', true);
+        $('#id_is_allday').attr('disabled', true);
         // 送信ボタンは表示しない
         showSubmitButton('');
     }
@@ -176,6 +190,31 @@ function showTypeOptions(opts) {
             $("#id_event_type_"+i).parent().hide();
         }
     }
+}
+
+/**
+ * イベントタイプの選択により、フォームの表示を変える
+ */
+function displayAsEventType() {
+    if("image"==getEventType()) {
+        // イベントタイプがimageなら、記事を非表示、画像関連を表示
+        $("#id_description").parent().hide();
+        $("#id_image").parent().show();
+        $("#id_image_area").show();
+    } else {
+        // それ以外は、記事を表示、画像関連を非表示
+        $("#id_description").parent().show();
+        $("#id_image").parent().hide();
+        $("#id_image_area").hide();
+    }
+}
+
+/**
+ * イベントタイプの取得
+ * @returns {string} イベントタイプ
+ */
+function getEventType() {
+    return  $('input[name="event_type"]:checked').val();
 }
 
 /**
@@ -237,6 +276,10 @@ function getEventFromForm() {
             data[key] = $("#id_"+key).val();
         }
     }
+    var src = $('#image_preview').attr('src');
+    if(src!="") {
+        data['image'] = src;
+    }
     return data;
 }
 
@@ -291,6 +334,7 @@ function submitEvent(e) {
             let cal_data = convertEventForCalendar(response.data);
             // カレンダーにイベントの追加
             calendar.addEvent(cal_data);
+            addImage(cal_data);
             closePopup();
         })
         .catch((error) => {
@@ -322,19 +366,28 @@ function showError(error) {
 function convertEventForCalendar(data) {
     // イベントタイプより、表示色を決定
     var col = "var(--event-item-color)";
+    var dsp = "auto"
     if( data.event_type=="diary") {
         var col = "var(--diary-item-color)";
     }
-    // カレンダー用のデータを返す
-    return {
+    if( data.event_type=="image") {
+        var dsp = "background"
+    }
+    // カレンダー用のデータ
+    var cal_data = {
         id: data.event_id,
         title: data.event_name,
         start: data.start_date,
         end: data.end_date,
         allDay: data.is_allday,
         backgroundColor: col,
-        classNames: [ "type-" + data.event_type ]
+        display: dsp,
+        classNames: [ "event_id_" + data.event_id ]
+    };
+    if('thumbnail_url' in data && data.thumbnail_url!="") {
+        cal_data['url'] = data.thumbnail_url;
     }
+    return cal_data;
 }
 
 /**
@@ -390,6 +443,48 @@ function onClickDelete() {
 }
 
 /**
+ * 画像ファイルが選択されたときの処理
+ * @param {object} e 
+ */
+function changeImageFile(e){
+    var file = e.target.files[0];
+    var reader = new FileReader();
+    if(file.type.indexOf('image') < 0){
+        alert("画像ファイルを指定してください。");
+        return false;
+    }
+    reader.onload = ((file) => {
+        return function(e){
+            $('#image_preview').attr('src', e.target.result);
+        };
+    })(file);
+    reader.readAsDataURL(file);
+}
+
+function additionalRender(dateInfo) {
+    setTimeout(() => {
+        let lst_event = calendar.getEvents();
+        lst_event.forEach(a_event => {
+            if(dateInfo.start<=a_event.start && a_event.end<=dateInfo.end) {
+                addImage(a_event);
+            }
+        });
+   }, 10);
+}
+
+/**
+ * イメージを加える
+ * @param {object} event カレンダーのイベントデータ 
+ */
+function addImage(a_event) {
+    if('url' in a_event) {
+        $(".event_id_"+a_event.id).css(
+            "background-image", 'url("'+a_event.url+'")'
+        );
+    }
+}
+
+/**
  * 初期化
  */
 function init() {
@@ -401,6 +496,10 @@ function init() {
     $("#id-check-to-edit").click(changeEditable);
     //  削除ボタンの処理を登録
     $("#button-delete").click(onClickDelete);
+    //  イベントタイプのラジオボタンが押された
+    $('input[name="event_type"]').click(displayAsEventType);
+    //  画像が選択された
+    $('#id_image').change(changeImageFile)
     //  ID="calendar"のタグに要素取得
     var calendarEl = document.getElementById('calendar');
     //  FullCalendarのインスタンスを作成
@@ -414,6 +513,8 @@ function init() {
         events: getEventList,
         //  イベントがクリックされたときに呼ばれるコールバック
         eventClick: onEventClick,
+        //  表示日時の範囲が変わったときに呼ばれるコールバック
+        datesSet: additionalRender,
         // ツールバーのデザイン
         headerToolbar: {
             left: 'dayGridMonth,timeGridWeek,timeGridDay', 
