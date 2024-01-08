@@ -54,7 +54,7 @@ def save_event(request):
         # IDが０でなければ、データ更新
         try:
             event, image = updateEvent(data)
-        except event.DoesNotExist:
+        except Event.DoesNotExist:
             return HttpResponse("渡されたデータが不正です。",
                                 status=400)
         # imageが作られていれば、イベントの子のimageを削除
@@ -178,7 +178,7 @@ def get_event(request, id):
     # URLのIDにてイベントデータを取得
     try:
         event = Event.objects.get(pk=id)
-    except event.DoesNotExist:
+    except Event.DoesNotExist:
         raise Http404("イベントがありません。")
     
     # JSONのイベントデータを返す
@@ -206,7 +206,7 @@ def delete_event(request):
     # イベントデータを取得
     try:
         event = Event.objects.get(pk=data['event_id'])
-    except event.DoesNotExist:
+    except Event.DoesNotExist:
         raise Http404("イベントがありません。")
 
     # イベントを削除
