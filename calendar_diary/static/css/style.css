@@ -3,16 +3,16 @@
 /* 変数の定義 */
 :root {
     /* イベントの表示色 */
-    --event-item-color: rgba(128,128,255, 0.8);
-    --event-border-color: rgba(51, 51, 212, 0.8);
+    --event-item-color: rgba(151, 151, 230, 0.8);
+    --event-border-color: rgba(82, 82, 180, 0.8);
     --event-text-color: rgb(0,0,0);
     /* 日記の表示色 */
-    --diary-item-color: rgba(255,128,128, 0.8);
-    --diary-border-color: rgba(212,51,51, 0.8);
+    --diary-item-color: rgba(230,151,151, 0.8);
+    --diary-border-color: rgba(180,82,82, 0.8);
     --diary-text-color: rgb(0,0,0);
     /* 画像の表示色 */
-    --image-item-color: rgba(128,255,128, 0.8);
-    --image-border-color: rgba(51,212,51, 0.8);
+    --image-item-color: rgba(151,230,151, 0.8);
+    --image-border-color: rgba(82,180,82, 0.8);
     --image-text-color: rgb(0,0,0);
     /* ポップアップの表示色 */
     --popup-base-color: rgba(239, 247, 255, 0.95);
@@ -26,7 +26,8 @@
 
 /* カレンダーのイベント上のカーソルは変える */
 .fc-event:hover,
-.fc-event-title-container:hover {
+.fc-event-title-container:hover,
+#image_preview:hover {
     cursor: pointer;
 }
 
@@ -186,13 +187,78 @@ textarea:read-only {
     height: 12em;
     border: 1px solid lightblue;
 }
-
+#id_image_area.expand {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    margin: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+/* プレビュー画像 */
 #image_preview {
     height: 100%;
     width: 100%;
     object-fit: contain;
 }
 
+/* 背景イベント */
 .fc-bg-event {
     background-size: cover !important;
+    background-position: center center !important;
+}
+/* 画像のアイコン */
+.type_image .fc-event-title::before {
+    content: "photo_camera";
+    color: rgba(0,0,0,0.4);
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1em;
+    line-height: 1;
+    letter-spacing:2px;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
+/* 日記のアイコン */
+.type_diary .fc-event-title::before {
+    content: "edit_note";
+    color: rgba(0,0,0,0.4);
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1em;
+    line-height: 1;
+    letter-spacing:2px;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+}
+/* イベントのアイコン */
+.fc-daygrid-block-event.type_event .fc-event-title::before {
+    content: "event";
+    color: rgba(0,0,0,0.4);
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1em;
+    line-height: 1;
+    letter-spacing:2px;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
 }

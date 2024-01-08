@@ -60,9 +60,9 @@ def save_event(request):
         # imageが作られていれば、イベントの子のimageを削除
         # 一対一にする。
         if image is not None:
-            for image in event.image_set.all():
-                image.image.delete()
-                image.delete()
+            for a_image in event.image_set.all():
+                a_image.image.delete()
+                a_image.delete()
 
     event.save()
     if image is not None:

@@ -163,6 +163,8 @@ function changeEditable() {
         } else {
             $('#id_is_allday').removeAttr('disabled');
         }
+        //  画像ファイル選択を表示
+        $('#id_image').show();
         // 送信ボタンを「更新」として表示する
         showSubmitButton('更新');
     } else {
@@ -170,6 +172,8 @@ function changeEditable() {
         $('.post_event_form input').attr('readonly', true);
         $('.post_event_form textarea').attr('readonly', true);
         $('#id_is_allday').attr('disabled', true);
+        //  画像ファイル選択は非表示
+        $('#id_image').hide();
         // 送信ボタンは表示しない
         showSubmitButton('');
     }
@@ -254,6 +258,10 @@ function setEventToForm(data) {
             $("#id_"+key).val(data[key]);
         }
     }
+    // 画像のURLがあれば、プレビューにセット
+    if("image_url" in data && data.image_url!="") {
+        $("#image_preview").attr("src", data.image_url);
+    }
 }
 
 /**
@@ -276,8 +284,10 @@ function getEventFromForm() {
             data[key] = $("#id_"+key).val();
         }
     }
+    // 画像のsrcの取得
     var src = $('#image_preview').attr('src');
-    if(src!="") {
+    // データだったらファイルからエンコードしたものなので、それをセット
+    if(src.substr(0,5)=="data:") {
         data['image'] = src;
     }
     return data;
@@ -382,6 +392,7 @@ function convertEventForCalendar(data) {
         borderColor: "var(--" + data.event_type + "-border-color)",
         backgroundColor: "var(--" + data.event_type + "-item-color)",
         display: "auto",
+        classNames: ["type_" + data.event_type],
         extendedProps: {
             event_type: data.event_type
         }
@@ -391,14 +402,15 @@ function convertEventForCalendar(data) {
     if( data.event_type=="image") {
         // 追加情報に画像のURLをセット
         cal_data.extendedProps['image_url'] = data.image_url;
-        bg_data.extendedProps['thumbnail_url'] = data.thumbnail_url;
+        cal_data.extendedProps['thumbnail_url'] = data.thumbnail_url;
         // サムネイルを表示する背景用にイベントをもう一つ作る。
         bg_data = JSON.parse(JSON.stringify(cal_data));
         // ID、表示形式を背景に、およびクラスを設定
         bg_data.id = bg_data.id + "_image";
+        bg_data.title = "";
         bg_data.display = "background";
-        bg_data['classNames'] = [ "event_id_" + data.event_id ];
-        lst.append(bd_data);
+        bg_data.classNames.push("event_id_" + bg_data.id);
+        lst.push(bg_data);
     }
     return lst;
 }
@@ -530,6 +542,13 @@ function addImage(a_event) {
 }
 
 /**
+ * プレビューがクリックされたときの処理
+ */
+function onPreviewClick() {
+    $("#id_image_area").toggleClass("expand");
+}
+
+/**
  * 初期化
  */
 function init() {
@@ -544,7 +563,9 @@ function init() {
     //  イベントタイプのラジオボタンが押された
     $('input[name="event_type"]').click(displayAsEventType);
     //  画像が選択された
-    $('#id_image').change(changeImageFile)
+    $('#id_image').change(changeImageFile);
+    // プレビュー画像のクリック
+    $('#image_preview').click(onPreviewClick);
     //  ID="calendar"のタグに要素取得
     var calendarEl = document.getElementById('calendar');
     //  FullCalendarのインスタンスを作成
