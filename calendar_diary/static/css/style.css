@@ -2,8 +2,19 @@
 
 /* 変数の定義 */
 :root {
+    /* イベントの表示色 */
     --event-item-color: rgba(128,128,255, 0.8);
+    --event-border-color: rgba(51, 51, 212, 0.8);
+    --event-text-color: rgb(0,0,0);
+    /* 日記の表示色 */
     --diary-item-color: rgba(255,128,128, 0.8);
+    --diary-border-color: rgba(212,51,51, 0.8);
+    --diary-text-color: rgb(0,0,0);
+    /* 画像の表示色 */
+    --image-item-color: rgba(128,255,128, 0.8);
+    --image-border-color: rgba(51,212,51, 0.8);
+    --image-text-color: rgb(0,0,0);
+    /* ポップアップの表示色 */
     --popup-base-color: rgba(239, 247, 255, 0.95);
     --popup-header-color: rgba(123, 216, 230, 0.3);
     --transparent: rgba(255,255,255,0);

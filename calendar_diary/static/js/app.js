@@ -51,7 +51,7 @@ function getEventList(info, successCallback, failureCallback) {
 function convertListForCalendar(l_data) {
     var cal_data = [];
     for(var a_event of l_data) {
-        cal_data.push( convertEventForCalendar(a_event) );
+        cal_data = cal_data.concat( convertEventForCalendar(a_event) );
     }
     return cal_data;
 }
@@ -327,14 +327,15 @@ function submitEvent(e) {
             // 登録成功
             if(data.event_id>0) {
                 // イベントIDがあったら、更新なので、カレンダーのイベントを削除
-                let event = calendar.getEventById( data.event_id );
-                event.remove();
+                deleteEvent(data.event_id);
             }
             // レスポンスのデータをカレンダーのデータに変換
-            let cal_data = convertEventForCalendar(response.data);
+            let lst_data = convertEventForCalendar(response.data);
             // カレンダーにイベントの追加
-            calendar.addEvent(cal_data);
-            addImage(cal_data);
+            lst_data.forEach( (cal_data) => {
+                calendar.addEvent(cal_data);
+                addImage(cal_data);
+            });
             closePopup();
         })
         .catch((error) => {
@@ -358,21 +359,18 @@ function showError(error) {
     alert(msg);
 }
 
+var event_bg_colors = {
+    'event': ["var(--event-item-color)" ],
+    'diary': ["var(--diary-item-color)" ],
+    'image': ["var(--image-item-color)" ],
+}
+
 /**
  * イベントデータをカレンダー用のデータに変える
  * @param {object} data イベントデータ 
- * @returns {object} カレンダー用のデータ
+ * @returns {object[]} カレンダー用のデータの配列
  */
 function convertEventForCalendar(data) {
-    // イベントタイプより、表示色を決定
-    var col = "var(--event-item-color)";
-    var dsp = "auto"
-    if( data.event_type=="diary") {
-        var col = "var(--diary-item-color)";
-    }
-    if( data.event_type=="image") {
-        var dsp = "background"
-    }
     // カレンダー用のデータ
     var cal_data = {
         id: data.event_id,
@@ -380,14 +378,29 @@ function convertEventForCalendar(data) {
         start: data.start_date,
         end: data.end_date,
         allDay: data.is_allday,
-        backgroundColor: col,
-        display: dsp,
-        classNames: [ "event_id_" + data.event_id ]
+        textColor: "var(--" + data.event_type + "-text-color)",
+        borderColor: "var(--" + data.event_type + "-border-color)",
+        backgroundColor: "var(--" + data.event_type + "-item-color)",
+        display: "auto",
+        extendedProps: {
+            event_type: data.event_type
+        }
     };
-    if('thumbnail_url' in data && data.thumbnail_url!="") {
-        cal_data['url'] = data.thumbnail_url;
+    lst = [cal_data];
+    // 画像の場合
+    if( data.event_type=="image") {
+        // 追加情報に画像のURLをセット
+        cal_data.extendedProps['image_url'] = data.image_url;
+        bg_data.extendedProps['thumbnail_url'] = data.thumbnail_url;
+        // サムネイルを表示する背景用にイベントをもう一つ作る。
+        bg_data = JSON.parse(JSON.stringify(cal_data));
+        // ID、表示形式を背景に、およびクラスを設定
+        bg_data.id = bg_data.id + "_image";
+        bg_data.display = "background";
+        bg_data['classNames'] = [ "event_id_" + data.event_id ];
+        lst.append(bd_data);
     }
-    return cal_data;
+    return lst;
 }
 
 /**
@@ -431,8 +444,7 @@ function onClickDelete() {
     axios.post("/sc/delete/", {event_id: id})
     .then(() => {
         // 成功したらイベントを削除
-        let event = calendar.getEventById( id );
-        event.remove();
+        deleteEvent(id);
         //  ポップアップを閉じる
         closePopup();
     })
@@ -443,7 +455,24 @@ function onClickDelete() {
 }
 
 /**
+ * カレンダーのイベントを削除する
+ * @param {object} id イベントのID 
+ */
+function deleteEvent(id) {
+    var event = calendar.getEventById( id );
+    if( event && event.extendedProps.event_type=="image") {
+        // イベントタイプがimageなら、背景のイベントを検索して、削除する。
+        let added_event  = calendar.getEventById( event.id + "_image" );
+        if (added_event) {
+            added_event.remove();
+        }
+    }
+    event.remove();
+}
+
+/**
  * 画像ファイルが選択されたときの処理
+ * プレビュー領域に表示する
  * @param {object} e 
  */
 function changeImageFile(e){
@@ -461,10 +490,18 @@ function changeImageFile(e){
     reader.readAsDataURL(file);
 }
 
+/**
+ * カレンダーの表示期間が変わった時の、追加の描画
+ * イベントの描画の前に呼ばれるので、タイマーでcalendar内の処理が
+ * 終わってから追加の描画をするようにしている。
+ * @param {object} dateInfo datesSetイベントのデータ
+ */
 function additionalRender(dateInfo) {
     setTimeout(() => {
         let lst_event = calendar.getEvents();
+        // calendarが持っている全てのイベントについてループ
         lst_event.forEach(a_event => {
+            // イベントが表示の期間内なら、追加の描画をする。
             if(dateInfo.start<=a_event.start && a_event.end<=dateInfo.end) {
                 addImage(a_event);
             }
@@ -473,13 +510,21 @@ function additionalRender(dateInfo) {
 }
 
 /**
- * イメージを加える
+ * 背景イベントにイメージを加える
  * @param {object} event カレンダーのイベントデータ 
  */
 function addImage(a_event) {
-    if('url' in a_event) {
+    // 追加プロパティにimage_urlがあるときのみ処理
+    if('image_url' in a_event.extendedProps) {
+        // 月表示ならサムネイル、そうでなければ元イメージのURL
+        if(calendar.view.type=='dayGridMonth') {
+            url = a_event.extendedProps.thumbnail_url;
+        } else {
+            url = a_event.extendedProps.image_url;
+        }
+        // クラスを指定し、背景画像を指定
         $(".event_id_"+a_event.id).css(
-            "background-image", 'url("'+a_event.url+'")'
+            "background-image", 'url("' + url + '")'
         );
     }
 }

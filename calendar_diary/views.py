@@ -108,7 +108,9 @@ def createImage(data):
     """
     画像オブジェクトの生成
     """
-    if not 'image' in data.keys() or data['image']=='':
+    if not 'image' in data.keys():
+        return None
+    if  data['image']=='':
         return None
     
     image_data = decode_base64_file(data['image'])
